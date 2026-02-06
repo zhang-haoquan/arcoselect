@@ -287,7 +287,7 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
         : sortValueB - sortValueA;
     });
 
-    // 生成series数据
+    // 生成series数据（数值统计 - 保留两位小数）
     const colors = ['#165DFF', '#14C9C9', '#F7BA1E', '#F53F3F', '#722ED1', '#86909C'];
     const series = groupNames.map((groupName, index) => ({
       name: groupName,
@@ -303,8 +303,14 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
       label: {
         show: true,
         position: 'inside',
-        formatter: '{c}',
-        fontSize: 10
+        formatter: function(params: any) {
+          // 只在值大于0时显示，保留两位小数
+          return params.value > 0 ? params.value.toFixed(2) : '';
+        },
+        fontSize: 11,
+        color: '#fff',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowBlur: 2
       },
       animationDuration: 500,
       animationEasing: 'cubicOut'
@@ -352,7 +358,7 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
         : sortValueB - sortValueA;
     });
 
-    // 生成series数据
+    // 生成series数据（计数统计 - 显示整数）
     const colors = ['#165DFF', '#14C9C9', '#F7BA1E', '#F53F3F', '#722ED1', '#86909C'];
     const series = groupNames.map((groupName, index) => ({
       name: groupName,
@@ -364,6 +370,18 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
       data: xAxisData.map(x => countMap[x][groupName] || 0),
       itemStyle: {
         color: colors[index % colors.length]
+      },
+      label: {
+        show: true,
+        position: 'inside',
+        formatter: function(params: any) {
+          // 只在值大于0时显示，显示整数
+          return params.value > 0 ? String(params.value) : '';
+        },
+        fontSize: 11,
+        color: '#fff',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowBlur: 2
       },
       animationDuration: 500,
       animationEasing: 'cubicOut'
@@ -805,10 +823,16 @@ const updateChart = () => {
           color: '#1D2129'
         },
         formatter: function(params: any) {
-          let result = params[0].name + '<br/>';
+          let result = '<div style="font-weight:600;margin-bottom:5px;">' + params[0].name + '</div>';
           params.forEach((param: any) => {
             if (param.value > 0) {
-              result += param.marker + param.seriesName + ': ' + param.value.toFixed(2) + '<br/>';
+              // 根据统计类型动态调整小数位数
+              const valueStr = useValueField ? param.value.toFixed(2) : String(Math.round(param.value));
+              result += '<div style="display:flex;align-items:center;margin:3px 0;">' + 
+                       param.marker + 
+                       '<span style="flex:1;margin-left:5px;">' + param.seriesName + '</span>' + 
+                       '<span style="font-weight:600;margin-left:10px;">' + valueStr + '</span>' + 
+                       '</div>';
             }
           });
           return result;
@@ -869,10 +893,16 @@ const updateChart = () => {
           color: '#1D2129'
         },
         formatter: function(params: any) {
-          let result = params[0].name + '<br/>';
+          let result = '<div style="font-weight:600;margin-bottom:5px;">' + params[0].name + '</div>';
           params.forEach((param: any) => {
             if (param.value > 0) {
-              result += param.marker + param.seriesName + ': ' + param.value.toFixed(2) + '<br/>';
+              // 根据统计类型动态调整小数位数
+              const valueStr = useValueField ? param.value.toFixed(2) : String(Math.round(param.value));
+              result += '<div style="display:flex;align-items:center;margin:3px 0;">' + 
+                       param.marker + 
+                       '<span style="flex:1;margin-left:5px;">' + param.seriesName + '</span>' + 
+                       '<span style="font-weight:600;margin-left:10px;">' + valueStr + '</span>' + 
+                       '</div>';
             }
           });
           return result;
@@ -936,10 +966,16 @@ const updateChart = () => {
           color: '#1D2129'
         },
         formatter: function(params: any) {
-          let result = params[0].name + '<br/>';
+          let result = '<div style="font-weight:600;margin-bottom:5px;">' + params[0].name + '</div>';
           params.forEach((param: any) => {
             if (param.value > 0) {
-              result += param.marker + param.seriesName + ': ' + param.value.toFixed(2) + '<br/>';
+              // 根据统计类型动态调整小数位数
+              const valueStr = useValueField ? param.value.toFixed(2) : String(Math.round(param.value));
+              result += '<div style="display:flex;align-items:center;margin:3px 0;">' + 
+                       param.marker + 
+                       '<span style="flex:1;margin-left:5px;">' + param.seriesName + '</span>' + 
+                       '<span style="font-weight:600;margin-left:10px;">' + valueStr + '</span>' + 
+                       '</div>';
             }
           });
           return result;
