@@ -59,22 +59,7 @@ const chartConfig = ref<ChartConfig>({
   aggregationType: 'sum'
 });
 
-const chartTypeOptions = [
-  { label: '柱状图', value: 'bar' },
-  { label: '折线图', value: 'line' },
-  { label: '饼图', value: 'pie' },
-  { label: '散点图', value: 'scatter' }
-];
 
-const sortByOptions = [
-  { label: '横轴值', value: 'xAxis' },
-  { label: '纵轴值', value: 'yAxis' }
-];
-
-const sortOrderOptions = [
-  { label: '正序', value: 'asc' },
-  { label: '倒序', value: 'desc' }
-];
 
 const metricOptions = [
   { label: '统计记录总数', value: 'count' },
@@ -243,14 +228,22 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
     xAxisData.forEach(x => {
       valueMap[x] = {};
       groupNames.forEach(g => {
-        valueMap[x][g] = [];
+        if (valueMap[x]) {
+          valueMap[x][g] = [];
+        }
       });
     });
 
     bugData.value.forEach(item => {
       const xValue = String(item[xField] ?? '未分类');
       const groupValue = String(item[groupField] ?? '未分组');
-      const fieldValue = getNumericValue(item[config.valueField!]);
+      const fieldValue = getNumericValue(item[config.valueField!] ?? 0);
+      if (!valueMap[xValue]) {
+        valueMap[xValue] = {};
+      }
+      if (!valueMap[xValue][groupValue]) {
+        valueMap[xValue][groupValue] = [];
+      }
       valueMap[xValue][groupValue].push(fieldValue);
     });
 
@@ -259,7 +252,9 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
     xAxisData.forEach(x => {
       aggregatedMap[x] = {};
       groupNames.forEach(g => {
-        aggregatedMap[x][g] = aggregateValues(valueMap[x][g], aggregationType);
+        if (aggregatedMap[x]) {
+          aggregatedMap[x][g] = aggregateValues(valueMap[x]?.[g] || [], aggregationType);
+        }
       });
     });
 
@@ -272,8 +267,8 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
       });
     } else {
       xAxisData.sort((a, b) => {
-        const sumA = Object.values(aggregatedMap[a]).reduce((sum, val) => sum + val, 0);
-        const sumB = Object.values(aggregatedMap[b]).reduce((sum, val) => sum + val, 0);
+        const sumA = Object.values(aggregatedMap[a] || {}).reduce((sum, val) => sum + val, 0);
+        const sumB = Object.values(aggregatedMap[b] || {}).reduce((sum, val) => sum + val, 0);
         return config.sortOrder === 'asc' ? sumA - sumB : sumB - sumA;
       });
     }
@@ -294,15 +289,15 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
       type: 'bar' as const,
       stack: 'total',
       emphasis: {
-        focus: 'series'
+        focus: 'series' as const
       },
-      data: xAxisData.map(x => Number(aggregatedMap[x][groupName].toFixed(2))),
+      data: xAxisData.map(x => Number((aggregatedMap[x]?.[groupName] || 0).toFixed(2))),
       itemStyle: {
         color: colors[index % colors.length]
       },
       label: {
         show: true,
-        position: 'inside',
+        position: 'inside' as const,
         formatter: function(params: any) {
           // 只在值大于0时显示，保留两位小数
           return params.value > 0 ? params.value.toFixed(2) : '';
@@ -313,7 +308,7 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
         textShadowBlur: 2
       },
       animationDuration: 500,
-      animationEasing: 'cubicOut'
+      animationEasing: 'cubicOut' as const
     }));
 
     return { xAxisData, series, groupNames, useValueField: true };
@@ -324,13 +319,18 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
     xAxisData.forEach(x => {
       countMap[x] = {};
       groupNames.forEach(g => {
-        countMap[x][g] = 0;
+        if (countMap[x]) {
+          countMap[x][g] = 0;
+        }
       });
     });
 
     bugData.value.forEach(item => {
       const xValue = String(item[xField] ?? '未分类');
       const groupValue = String(item[groupField] ?? '未分组');
+      if (!countMap[xValue]) {
+        countMap[xValue] = {};
+      }
       countMap[xValue][groupValue] = (countMap[xValue][groupValue] || 0) + 1;
     });
 
@@ -343,8 +343,8 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
       });
     } else {
       xAxisData.sort((a, b) => {
-        const sumA = Object.values(countMap[a]).reduce((sum, val) => sum + val, 0);
-        const sumB = Object.values(countMap[b]).reduce((sum, val) => sum + val, 0);
+        const sumA = Object.values(countMap[a] || {}).reduce((sum, val) => sum + val, 0);
+        const sumB = Object.values(countMap[b] || {}).reduce((sum, val) => sum + val, 0);
         return config.sortOrder === 'asc' ? sumA - sumB : sumB - sumA;
       });
     }
@@ -365,15 +365,15 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
       type: 'bar' as const,
       stack: 'total',
       emphasis: {
-        focus: 'series'
+        focus: 'series' as const
       },
-      data: xAxisData.map(x => countMap[x][groupName] || 0),
+      data: xAxisData.map(x => countMap[x]?.[groupName] || 0),
       itemStyle: {
         color: colors[index % colors.length]
       },
       label: {
         show: true,
-        position: 'inside',
+        position: 'inside' as const,
         formatter: function(params: any) {
           // 只在值大于0时显示，显示整数
           return params.value > 0 ? String(params.value) : '';
@@ -384,7 +384,7 @@ const processStackBarData = (xField: string, groupField: string, config: ChartCo
         textShadowBlur: 2
       },
       animationDuration: 500,
-      animationEasing: 'cubicOut'
+      animationEasing: 'cubicOut' as const
     }));
 
     return { xAxisData, series, groupNames, useValueField: false };
@@ -429,13 +429,13 @@ const processNormalBarData = (xField: string) => {
     data: data,
     label: {
       show: true,
-      position: 'top'
+      position: 'top' as const
     },
     itemStyle: {
       color: '#165DFF'
     },
     animationDuration: 500,
-    animationEasing: 'cubicOut'
+    animationEasing: 'cubicOut' as const
   }];
 
   return { xAxisData, series };
@@ -470,14 +470,22 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
     xAxisData.forEach(x => {
       valueMap[x] = {};
       groupNames.forEach(g => {
-        valueMap[x][g] = [];
+        if (valueMap[x]) {
+          valueMap[x][g] = [];
+        }
       });
     });
 
     bugData.value.forEach(item => {
       const xValue = String(item[xField] ?? '未分类');
       const groupValue = String(item[groupField] ?? '未分组');
-      const fieldValue = getNumericValue(item[config.valueField!]);
+      const fieldValue = getNumericValue(item[config.valueField!] ?? 0);
+      if (!valueMap[xValue]) {
+        valueMap[xValue] = {};
+      }
+      if (!valueMap[xValue][groupValue]) {
+        valueMap[xValue][groupValue] = [];
+      }
       valueMap[xValue][groupValue].push(fieldValue);
     });
 
@@ -486,7 +494,9 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
     xAxisData.forEach(x => {
       aggregatedMap[x] = {};
       groupNames.forEach(g => {
-        aggregatedMap[x][g] = aggregateValues(valueMap[x][g], aggregationType);
+        if (aggregatedMap[x]) {
+          aggregatedMap[x][g] = aggregateValues(valueMap[x]?.[g] || [], aggregationType);
+        }
       });
     });
 
@@ -499,8 +509,8 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
       });
     } else {
       xAxisData.sort((a, b) => {
-        const sumA = Object.values(aggregatedMap[a]).reduce((sum, val) => sum + val, 0);
-        const sumB = Object.values(aggregatedMap[b]).reduce((sum, val) => sum + val, 0);
+        const sumA = Object.values(aggregatedMap[a] || {}).reduce((sum, val) => sum + val, 0);
+        const sumB = Object.values(aggregatedMap[b] || {}).reduce((sum, val) => sum + val, 0);
         return config.sortOrder === 'asc' ? sumA - sumB : sumB - sumA;
       });
     }
@@ -521,20 +531,20 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
       type: 'bar' as const,
       // 簇状图不设置stack属性，让柱子并排显示
       emphasis: {
-        focus: 'series'
+        focus: 'series' as const
       },
-      data: xAxisData.map(x => Number(aggregatedMap[x][groupName].toFixed(2))),
+      data: xAxisData.map(x => Number((aggregatedMap[x]?.[groupName] || 0).toFixed(2))),
       itemStyle: {
         color: colors[index % colors.length]
       },
       label: {
         show: true,
-        position: 'top',
+        position: 'top' as const,
         formatter: '{c}',
         fontSize: 10
       },
       animationDuration: 500,
-      animationEasing: 'cubicOut'
+      animationEasing: 'cubicOut' as const
     }));
 
     return { xAxisData, series, groupNames, useValueField: true };
@@ -545,13 +555,18 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
     xAxisData.forEach(x => {
       countMap[x] = {};
       groupNames.forEach(g => {
-        countMap[x][g] = 0;
+        if (countMap[x]) {
+          countMap[x][g] = 0;
+        }
       });
     });
 
     bugData.value.forEach(item => {
       const xValue = String(item[xField] ?? '未分类');
       const groupValue = String(item[groupField] ?? '未分组');
+      if (!countMap[xValue]) {
+        countMap[xValue] = {};
+      }
       countMap[xValue][groupValue] = (countMap[xValue][groupValue] || 0) + 1;
     });
 
@@ -564,8 +579,8 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
       });
     } else {
       xAxisData.sort((a, b) => {
-        const sumA = Object.values(countMap[a]).reduce((sum, val) => sum + val, 0);
-        const sumB = Object.values(countMap[b]).reduce((sum, val) => sum + val, 0);
+        const sumA = Object.values(countMap[a] || {}).reduce((sum, val) => sum + val, 0);
+        const sumB = Object.values(countMap[b] || {}).reduce((sum, val) => sum + val, 0);
         return config.sortOrder === 'asc' ? sumA - sumB : sumB - sumA;
       });
     }
@@ -586,20 +601,20 @@ const processClusterBarData = (xField: string, groupField: string, config: Chart
       type: 'bar' as const,
       // 簇状图不设置stack属性
       emphasis: {
-        focus: 'series'
+        focus: 'series' as const
       },
-      data: xAxisData.map(x => countMap[x][groupName] || 0),
+      data: xAxisData.map(x => countMap[x]?.[groupName] || 0),
       itemStyle: {
         color: colors[index % colors.length]
       },
       label: {
         show: true,
-        position: 'top',
+        position: 'top' as const,
         formatter: '{c}',
         fontSize: 10
       },
       animationDuration: 500,
-      animationEasing: 'cubicOut'
+      animationEasing: 'cubicOut' as const
     }));
 
     return { xAxisData, series, groupNames, useValueField: false };
@@ -635,14 +650,22 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
     xAxisData.forEach(x => {
       valueMap[x] = {};
       groupNames.forEach(g => {
-        valueMap[x][g] = [];
+        if (valueMap[x]) {
+          valueMap[x][g] = [];
+        }
       });
     });
 
     bugData.value.forEach(item => {
       const xValue = String(item[xField] ?? '未分类');
       const groupValue = String(item[groupField] ?? '未分组');
-      const fieldValue = getNumericValue(item[config.valueField!]);
+      const fieldValue = getNumericValue(item[config.valueField!] ?? 0);
+      if (!valueMap[xValue]) {
+        valueMap[xValue] = {};
+      }
+      if (!valueMap[xValue][groupValue]) {
+        valueMap[xValue][groupValue] = [];
+      }
       valueMap[xValue][groupValue].push(fieldValue);
     });
 
@@ -651,7 +674,9 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
     xAxisData.forEach(x => {
       aggregatedMap[x] = {};
       groupNames.forEach(g => {
-        aggregatedMap[x][g] = aggregateValues(valueMap[x][g], aggregationType);
+        if (aggregatedMap[x]) {
+          aggregatedMap[x][g] = aggregateValues(valueMap[x]?.[g] || [], aggregationType);
+        }
       });
     });
 
@@ -664,8 +689,8 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
       });
     } else {
       xAxisData.sort((a, b) => {
-        const sumA = Object.values(aggregatedMap[a]).reduce((sum, val) => sum + val, 0);
-        const sumB = Object.values(aggregatedMap[b]).reduce((sum, val) => sum + val, 0);
+        const sumA = Object.values(aggregatedMap[a] || {}).reduce((sum, val) => sum + val, 0);
+        const sumB = Object.values(aggregatedMap[b] || {}).reduce((sum, val) => sum + val, 0);
         return config.sortOrder === 'asc' ? sumA - sumB : sumB - sumA;
       });
     }
@@ -687,9 +712,9 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
       stack: 'total',
       // 不设置areaStyle，只显示线条
       emphasis: {
-        focus: 'series'
+        focus: 'series' as const
       },
-      data: xAxisData.map(x => Number(aggregatedMap[x][groupName].toFixed(2))),
+      data: xAxisData.map(x => Number((aggregatedMap[x]?.[groupName] || 0).toFixed(2))),
       itemStyle: {
         color: colors[index % colors.length]
       },
@@ -697,10 +722,10 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
         width: 2
       },
       smooth: false,
-      symbol: 'circle',
+      symbol: 'circle' as const,
       symbolSize: 6,
       animationDuration: 500,
-      animationEasing: 'cubicOut'
+      animationEasing: 'cubicOut' as const
     }));
 
     return { xAxisData, series, groupNames, useValueField: true };
@@ -711,13 +736,18 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
     xAxisData.forEach(x => {
       countMap[x] = {};
       groupNames.forEach(g => {
-        countMap[x][g] = 0;
+        if (countMap[x]) {
+          countMap[x][g] = 0;
+        }
       });
     });
 
     bugData.value.forEach(item => {
       const xValue = String(item[xField] ?? '未分类');
       const groupValue = String(item[groupField] ?? '未分组');
+      if (!countMap[xValue]) {
+        countMap[xValue] = {};
+      }
       countMap[xValue][groupValue] = (countMap[xValue][groupValue] || 0) + 1;
     });
 
@@ -730,8 +760,8 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
       });
     } else {
       xAxisData.sort((a, b) => {
-        const sumA = Object.values(countMap[a]).reduce((sum, val) => sum + val, 0);
-        const sumB = Object.values(countMap[b]).reduce((sum, val) => sum + val, 0);
+        const sumA = Object.values(countMap[a] || {}).reduce((sum, val) => sum + val, 0);
+        const sumB = Object.values(countMap[b] || {}).reduce((sum, val) => sum + val, 0);
         return config.sortOrder === 'asc' ? sumA - sumB : sumB - sumA;
       });
     }
@@ -753,9 +783,9 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
       stack: 'total',
       // 不设置areaStyle，只显示线条
       emphasis: {
-        focus: 'series'
+        focus: 'series' as const
       },
-      data: xAxisData.map(x => countMap[x][groupName] || 0),
+      data: xAxisData.map(x => countMap[x]?.[groupName] || 0),
       itemStyle: {
         color: colors[index % colors.length]
       },
@@ -763,10 +793,10 @@ const processStackLineData = (xField: string, groupField: string, config: ChartC
         width: 2
       },
       smooth: false,
-      symbol: 'circle',
+      symbol: 'circle' as const,
       symbolSize: 6,
       animationDuration: 500,
-      animationEasing: 'cubicOut'
+      animationEasing: 'cubicOut' as const
     }));
 
     return { xAxisData, series, groupNames, useValueField: false };
@@ -1104,7 +1134,7 @@ watch(
     valueField: chartConfig.value.valueField,
     aggregationType: chartConfig.value.aggregationType
   }),
-  (newVal, oldVal) => {
+  (newVal) => {
     console.log('配置变更:', newVal);
     updateChart();
   },
